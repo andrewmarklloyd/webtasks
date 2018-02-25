@@ -1,5 +1,6 @@
 'use latest';
 import request from 'request';
+import slack from 'slack-notify';
 import bodyParser from 'body-parser';
 import express from 'express';
 import Webtask from 'webtask-tools';
@@ -49,6 +50,14 @@ function sendDirectMessage(channel, text, token) {
 	});
 }
 
+function sendSameChannelResponse(response_url, text) {
+	var slack = require('slack-notify')(response_url);
+	slack.send({
+	  text: text,
+	  ephemeral: true
+	})
+}
+
 function sendWelcomeMessage(token, userId, sedChannelId) {
   getRepoLinkText(sedChannelId)
   .then(text => {
@@ -72,7 +81,23 @@ server.post('/', (req, res, next) => {
 server.post('/test', (req, res, next) => {
   if (req.body.token == req.webtaskContext.secrets.slackToken) {
     res.status(200).end();
-    sendWelcomeMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.user_id, req.webtaskContext.secrets.SED_APP_CHANNEL);
+    const slackApiToken =req.webtaskContext.secrets.SLACK_API_TOKEN;
+    const args = req.body.text.split(' ');
+    switch (args[0]) {
+      case 'stats':
+        sendSameChannelResponse(req.body.response_url, "Working on getting user and server stats available this week!");
+        break;
+      case 'help':
+        sendSameChannelResponse(req.body.response_url, "Try these arguments: \`/sedaily [help|welcome|stats]\`");
+        break;
+      case 'welcome':
+        console.log(req.body)
+        sendWelcomeMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.user_id, req.webtaskContext.secrets.SED_APP_CHANNEL);
+        break;
+      default:
+        sendSameChannelResponse(req.body.response_url, 'No arguments recognized. For help try using \`/sedaily help\`');
+        break;
+    }
   } else {
     console.log('recieved Unauthorized event');
     res.status(401).send('Unauthorized');
