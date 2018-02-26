@@ -111,19 +111,28 @@ function createSnapshot(GRAFANA_BASE_URL, GRAFANA_API_KEY, dashboard) {
 function sendSnapshotUrl(GRAFANA_BASE_URL, GRAFANA_API_KEY, response_url, storage) {
   storage.get(function (error, data) {
     if (error) return sendSameChannelResponse(response_url, `An error occurred: ${error}`);
-    if (!data.monthlySnapshot) {
+    if (data && data.monthlySnapshot && (new Date(data.monthlySnapshot.expires) - new Date()) > 0) {
+      const timeDiff = new Date(data.monthlySnapshot.expires) - new Date();
+      const timelate = new Date() - new Date(data.monthlySnapshot.created);
+      sendSameChannelResponse(response_url, `Here's the monthly overview snapshot. It is ${Math.round(((timelate % 86400000) % 3600000) / 60000)} minute(s) timelate and will expire in ${Math.round(((timeDiff % 86400000) % 3600000) / 60000)} minutes: ${data.monthlySnapshot.url}`);
+    } else {
       getSummaryDashboard(GRAFANA_BASE_URL, GRAFANA_API_KEY).then(dashboard => {
         return createSnapshot(GRAFANA_BASE_URL, GRAFANA_API_KEY, dashboard)
       }).then(data => {
-        sendSameChannelResponse(response_url, data.url);
-        storage.set({monthlySnapshot: data.url}, {force: 1}, function (error) {
+        sendSameChannelResponse(response_url, `Here's the monthly overview snapshot. It will expire in 30 minutes: ${data.url}`);
+        const newData = {
+          monthlySnapshot: {
+            url: data.url,
+            created: new Date().getTime(),
+            expires: new Date(new Date().getTime() + 30*60000).getTime()
+          }
+        };
+        storage.set(newData, {force: 1}, function (error) {
           if (error) throw error;
         });
       }).catch(err => {
         sendSameChannelResponse(response_url, `An error occurred: ${err}`)
-      })
-    } else {
-      sendSameChannelResponse(response_url, data.monthlySnapshot);
+      });
     }
   });
 }
