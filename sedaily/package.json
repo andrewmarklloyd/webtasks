@@ -2,7 +2,6 @@
   "dependencies": {
     "body-parser": "^1.18.2",
     "express": "^4.16.2",
-    "influx": "^5.0.7",
     "request": "^2.83.0",
     "slack-notify": "^0.1.6",
     "webtask-tools": "^3.2.0"
