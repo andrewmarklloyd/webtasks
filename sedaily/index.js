@@ -104,4 +104,8 @@ server.post('/test', (req, res, next) => {
   }
 });
 
+server.get('/health-check', (req, res, next) => {
+  res.status(200).send('OK');
+});
+
 module.exports = Webtask.fromExpress(server);
