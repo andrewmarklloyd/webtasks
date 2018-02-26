@@ -108,12 +108,24 @@ function createSnapshot(GRAFANA_BASE_URL, GRAFANA_API_KEY, dashboard) {
   });
 }
 
-function sendSnapshotUrl(GRAFANA_BASE_URL, GRAFANA_API_KEY, response_url) {
-  getSummaryDashboard(GRAFANA_BASE_URL, GRAFANA_API_KEY).then(dashboard => {
-    return createSnapshot(GRAFANA_BASE_URL, GRAFANA_API_KEY, dashboard)
-  }).then(data => {
-    sendSameChannelResponse(response_url, data.url)
-  })
+function sendSnapshotUrl(GRAFANA_BASE_URL, GRAFANA_API_KEY, response_url, storage) {
+  storage.get(function (error, data) {
+    if (error) return sendSameChannelResponse(response_url, `An error occurred: ${error}`);
+    if (!data.monthlySnapshot) {
+      getSummaryDashboard(GRAFANA_BASE_URL, GRAFANA_API_KEY).then(dashboard => {
+        return createSnapshot(GRAFANA_BASE_URL, GRAFANA_API_KEY, dashboard)
+      }).then(data => {
+        sendSameChannelResponse(response_url, data.url);
+        storage.set({monthlySnapshot: data.url}, {force: 1}, function (error) {
+          if (error) throw error;
+        });
+      }).catch(err => {
+        sendSameChannelResponse(response_url, `An error occurred: ${err}`)
+      })
+    } else {
+      sendSameChannelResponse(response_url, data.monthlySnapshot);
+    }
+  });
 }
 
 server.post('/', (req, res, next) => {
@@ -136,8 +148,9 @@ server.post('/test', (req, res, next) => {
     const args = req.body.text.split(' ');
     switch (args[0]) {
       case 'stats':
+        res.status(200).end();
         if (args[1] && args[1] == 'snapshot') {
-          sendSnapshotUrl(req.webtaskContext.secrets.GRAFANA_BASE_URL, req.webtaskContext.secrets.GRAFANA_API_KEY, req.body.response_url);
+          sendSnapshotUrl(req.webtaskContext.secrets.GRAFANA_BASE_URL, req.webtaskContext.secrets.GRAFANA_API_KEY, req.body.response_url, req.webtaskContext.storage);
         } else {
           sendSameChannelResponse(req.body.response_url, "Working on getting user and server stats available this week!");  
         }

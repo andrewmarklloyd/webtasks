@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "reload:test": "nodemon --exec npm run deploy:test",
+    "reload:test": "concurrently \"nodemon --exec npm run deploy:test\" \"wt logs\"",
     "deploy:test": "wt update sedaily-test index.js",
     "deploy:prod": "wt update sedaily index.js"
   },
@@ -12,6 +12,7 @@
     "webtask-tools": "^3.2.0"
   },
   "devDependencies": {
+    "concurrently": "^3.5.1",
     "nodemon": "^1.15.1"
   }
 }
