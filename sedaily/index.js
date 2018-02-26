@@ -83,7 +83,7 @@ function getSummaryDashboard(GRAFANA_BASE_URL, GRAFANA_API_KEY) {
   });
 }
 
-function createSnapshot(dashboard) {
+function createSnapshot(GRAFANA_BASE_URL, GRAFANA_API_KEY, dashboard) {
   const options = {
     method: 'post',
     url: `${GRAFANA_BASE_URL}/api/snapshots`,
@@ -110,7 +110,7 @@ function createSnapshot(dashboard) {
 
 function sendSnapshotUrl(GRAFANA_BASE_URL, GRAFANA_API_KEY, response_url) {
   getSummaryDashboard(GRAFANA_BASE_URL, GRAFANA_API_KEY).then(dashboard => {
-    return createSnapshot(dashboard)
+    return createSnapshot(GRAFANA_BASE_URL, GRAFANA_API_KEY, dashboard)
   }).then(data => {
     sendSameChannelResponse(response_url, data.url)
   })
