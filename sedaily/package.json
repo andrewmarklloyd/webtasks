@@ -1,9 +1,17 @@
 {
+  "scripts": {
+    "reload:test": "nodemon --exec npm run deploy:test",
+    "deploy:test": "wt update sedaily-test index.js",
+    "deploy:prod": "wt update sedaily index.js"
+  },
   "dependencies": {
     "body-parser": "^1.18.2",
     "express": "^4.16.2",
     "request": "^2.83.0",
     "slack-notify": "^0.1.6",
     "webtask-tools": "^3.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.15.1"
   }
 }
