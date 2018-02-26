@@ -36,7 +36,7 @@ function sendDirectMessage(channel, text, token) {
 		method: 'post',
 		url: `https://slack.com/api/chat.postMessage`,
 		qs: {
-			channel, text, token, icon_emoji: ':sedaily:', username: 'New Contributor Bot'
+			channel, text, token, icon_emoji: ':sedaily:', username: 'SEDaily App Bot'
 		}
 	};
 	return new Promise((resolve, reject) => {
@@ -55,7 +55,7 @@ function sendSameChannelResponse(response_url, text) {
 	slack.send({
 	  text: text,
 	  ephemeral: true
-	})
+	});
 }
 
 function sendWelcomeMessage(token, userId, sedChannelId) {
@@ -95,7 +95,7 @@ server.post('/test', (req, res, next) => {
         sendWelcomeMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.user_id, req.webtaskContext.secrets.SED_APP_CHANNEL);
         break;
       default:
-        sendSameChannelResponse(req.body.response_url, 'No arguments recognized. For help try using \`/sedaily help\`');
+        sendSameChannelResponse(req.body.response_url, 'Arguments not recognized. For help try using \`/sedaily help\`');
         break;
     }
   } else {
