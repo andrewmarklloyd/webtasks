@@ -65,6 +65,57 @@ function sendWelcomeMessage(token, userId, sedChannelId) {
   });
 }
 
+function getSummaryDashboard(GRAFANA_BASE_URL, GRAFANA_API_KEY) {
+  const options = {
+    url: `${GRAFANA_BASE_URL}/api/dashboards/db/event-summaries`,
+    headers: {
+      'Authorization': `Bearer ${GRAFANA_API_KEY}`
+    }
+  };
+  return new Promise((resolve, reject) => {
+    request(options, function (error, response, body) {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(JSON.parse(body).dashboard);
+      }
+    });
+  });
+}
+
+function createSnapshot(dashboard) {
+  const options = {
+    method: 'post',
+    url: `${GRAFANA_BASE_URL}/api/snapshots`,
+    headers: {
+      'Authorization': `Bearer ${GRAFANA_API_KEY}`
+    },
+    json: true,
+    body: {
+      expires: 3600,
+      dashboard: dashboard,
+      name: 'Events API Snapshot'
+    }
+  };
+  return new Promise((resolve, reject) => {
+    request(options, function (error, response, body) {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(body);
+      }
+    });
+  });
+}
+
+function sendSnapshotUrl(GRAFANA_BASE_URL, GRAFANA_API_KEY, response_url) {
+  getSummaryDashboard(GRAFANA_BASE_URL, GRAFANA_API_KEY).then(dashboard => {
+    return createSnapshot(dashboard)
+  }).then(data => {
+    sendSameChannelResponse(response_url, data.url)
+  })
+}
+
 server.post('/', (req, res, next) => {
   if (req.body.token == req.webtaskContext.secrets.slackToken) {
     res.status(200).end();
@@ -85,13 +136,16 @@ server.post('/test', (req, res, next) => {
     const args = req.body.text.split(' ');
     switch (args[0]) {
       case 'stats':
-        sendSameChannelResponse(req.body.response_url, "Working on getting user and server stats available this week!");
+        if (args[1] && args[1] == 'snapshot') {
+          sendSnapshotUrl(req.webtaskContext.secrets.GRAFANA_BASE_URL, req.webtaskContext.secrets.GRAFANA_API_KEY, req.body.response_url);
+        } else {
+          sendSameChannelResponse(req.body.response_url, "Working on getting user and server stats available this week!");  
+        }
         break;
       case 'help':
         sendSameChannelResponse(req.body.response_url, "Try these arguments: \`/sedaily [help|welcome|stats]\`");
         break;
       case 'welcome':
-        console.log(req.body)
         sendWelcomeMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.user_id, req.webtaskContext.secrets.SED_APP_CHANNEL);
         break;
       default:
