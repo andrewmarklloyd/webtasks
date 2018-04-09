@@ -58,11 +58,21 @@ function sendSameChannelResponse(response_url, text) {
 	});
 }
 
-function sendWelcomeMessage(token, userId, sedChannelId) {
+function sendWelcomeSedAppMessage(token, userId, sedChannelId) {
   getRepoLinkText(sedChannelId)
   .then(text => {
     sendDirectMessage(userId, text, token);
   });
+}
+
+function sendWelcomeMessage(token, userId, secrets) {
+  const text = `
+  Welcome! If you are interested in our open source project, please join <#${secrets.SED_APP_CHANNEL}|sed_app_development>.
+
+  For our apps and website, check out <#${secrets.IOS_APP_CHANNEL}|sed_app_ios>, <#${secrets.ANDROID_APP_CHANNEL}|sed_app_android>,  or <#${secrets.WEB_FRONT_CHANNEL}|sed_app_web_frontend>
+
+  You can also join our community and share your own projects at www.softwaredaily.com !`
+  sendDirectMessage(userId, text, token);
 }
 
 function getSummaryDashboard(GRAFANA_BASE_URL, GRAFANA_API_KEY) {
@@ -141,8 +151,13 @@ server.post('/', (req, res, next) => {
   if (req.body.token == req.webtaskContext.secrets.slackToken) {
     res.status(200).end();
     const sedAppChannel = (req.body.event.channel == req.webtaskContext.secrets.SED_APP_CHANNEL || req.body.event.channel == req.webtaskContext.secrets.apiTestingChannel);
-    if (req.body.event.type == 'member_joined_channel' && sedAppChannel) {
-      sendWelcomeMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.event.user, req.webtaskContext.secrets.SED_APP_CHANNEL);
+    const generalChannel = (req.body.event.channel == req.webtaskContext.secrets.GENERAL_CHANNEL);
+    if (req.body.event.type == 'member_joined_channel') {
+      if (sedAppChannel) {
+        sendWelcomeSedAppMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.event.user, req.webtaskContext.secrets.SED_APP_CHANNEL);
+      } else if (generalChannel) {
+        sendWelcomeMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.event.user, req.webtaskContext.secrets);
+      }
     }
   } else {
     console.log('recieved Unauthorized event');
@@ -168,7 +183,7 @@ server.post('/test', (req, res, next) => {
         sendSameChannelResponse(req.body.response_url, "Try these arguments: \`/sedaily [help|welcome|stats]\`");
         break;
       case 'welcome':
-        sendWelcomeMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.user_id, req.webtaskContext.secrets.SED_APP_CHANNEL);
+        sendWelcomeMessage(req.webtaskContext.secrets.SLACK_API_TOKEN, req.body.user_id, req.webtaskContext.secrets);
         break;
       default:
         sendSameChannelResponse(req.body.response_url, 'Arguments not recognized. For help try using \`/sedaily help\`');
